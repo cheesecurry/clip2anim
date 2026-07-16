@@ -1,0 +1,5 @@
+PySide6
+qtawesome
+nuitka
+ordered-set
+zstandard

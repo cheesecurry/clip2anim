@@ -420,7 +420,7 @@ class MainWindow(QMainWindow):
         設定ファイルがない場合や読み込みに失敗した場合は空を返す。
         """
         # プログラムと同じディレクトリにある config.json を探す
-        config_path = Path(__file__).resolve().parent / "config.json"
+        config_path = APP_DIR / "config.json"
         
         if config_path.exists():
             try:
@@ -708,6 +708,7 @@ class MainWindow(QMainWindow):
 
         # --- コーデックを動的に指定 ---
         av1_codec = self.config.get("av1_codec", "libaom-av1")
+        print(av1_codec)
 
         cmd = args + [
             "-vf", ",".join(vf),

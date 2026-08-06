@@ -87,6 +87,7 @@ class ExportWorker(QThread):
             while True:
                 line = process.stderr.readline()
                 if line:
+
                     line = line.strip()
 
                     # ログはすべて保存・表示
@@ -187,6 +188,9 @@ class MainWindow(QMainWindow):
         self.worker = None
         self.progress_dialog = None
 
+        # --- ドラッグ＆ドロップを有効にする ---
+        self.setAcceptDrops(True)
+
         # --- 設定の読み込み ---
         self.config = self.load_config()
 
@@ -197,6 +201,7 @@ class MainWindow(QMainWindow):
         self.video = QVideoWidget()
         self.video.setStyleSheet("background:black;")
         self.video.setMinimumSize(640, 360)
+        self.video.setAcceptDrops(True) 
         self.video.installEventFilter(self)
         self.player.setVideoOutput(self.video)
         
@@ -254,12 +259,13 @@ class MainWindow(QMainWindow):
         self.btn_start.setFixedSize(48, 48)
         self.btn_start.setIconSize(QSize(32, 32))
         self.btn_start.setToolTip("開始設定 Ctrl+S")  
-
+        
         self.btn_end = QPushButton()
         self.btn_end.setIcon(qta.icon("mdi6.map-marker-left"))
         self.btn_end.setFixedSize(48, 48)
         self.btn_end.setIconSize(QSize(32, 32))
         self.btn_end.setToolTip("終了設定 Ctrl+E")  
+        
         self.lbl_start = QLabel("開始: 00:00:00.000")
         self.lbl_end = QLabel("終了: 00:00:00.000")
 
@@ -384,9 +390,6 @@ class MainWindow(QMainWindow):
         self.player.durationChanged.connect(self.on_duration_changed)
         self.player.mediaStatusChanged.connect(self.on_media_status_changed)
 
-        self.player.positionChanged.connect(self.on_position_changed)
-        self.player.durationChanged.connect(self.on_duration_changed)
-        self.player.mediaStatusChanged.connect(self.on_media_status_changed)
         self.btn_prev_frame.clicked.connect(lambda: self.seek_relative(-33))
         self.btn_next_frame.clicked.connect(lambda: self.seek_relative(33))
         self.btn_prev_sec.clicked.connect(lambda: self.seek_relative(-1000))
@@ -429,6 +432,85 @@ class MainWindow(QMainWindow):
             except Exception:
                 return {}
         return {}
+
+    # --- ドラッグ＆ドロップの実装 ---
+
+    def dragEnterEvent(self, event):
+        """ドラッグされたオブジェクトがファイルURLを持っているか確認"""
+        if event.mimeData().hasUrls():
+            event.accept()
+            event.setDropAction(Qt.DropAction.CopyAction)
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        """ドロップされたファイルを取得して読み込み"""
+        files = [u.toLocalFile() for u in event.mimeData().urls()]
+        for file_path in files:
+            if os.path.isfile(file_path):
+                self._load_video(file_path)
+                break
+        event.accept()
+
+    def eventFilter(self, obj, event):
+        """映像表示エリア（VideoWidget）へのイベントを監視する"""
+        # プレイヤーウィジェット上でのイベントかどうかを判定
+        if obj == self.video:
+            # 1. ドラッグがプレイヤーの上に入ってきたとき
+            if event.type() == QEvent.Type.DragEnter:
+                if event.mimeData().hasUrls():
+                    event.accept()
+                    event.setDropAction(Qt.DropAction.CopyAction)
+                    return True # イベントを処理済みとしてマーク
+                
+            # 2. ドラッグがプレイヤーの上を移動しているとき
+            elif event.type() == QEvent.Type.DragMove:
+                if event.mimeData().hasUrls():
+                    event.accept()
+                    event.setDropAction(Qt.DropAction.CopyAction)
+                    return True
+                else:
+                    event.ignore()
+                    return True
+
+            # 3. プレイヤーにドロップされたとき
+            elif event.type() == QEvent.Type.Drop:
+                if event.mimeData().hasUrls():
+                    files = [u.toLocalFile() for u in event.mimeData().urls()]
+                    for file_path in files:
+                        if os.path.isfile(file_path):
+                            self._load_video(file_path)
+                            break
+                    event.accept()
+                    return True # イベントを処理済みとしてマーク
+
+            # 4. クリックイベント（既存の機能）
+            elif event.type() == QEvent.Type.MouseButtonPress:
+                self.toggle_play()
+                return True
+
+        # それ以外は通常の動作（親クラスの処理）に任せる
+        return super().eventFilter(obj, event)
+
+    # --- 共通読み込みロジック ---
+
+    def _load_video(self, path):
+        """動画ファイルのパスを受け取り、プレイヤーにセットする"""
+        self.video_path = path
+        self.setWindowTitle(f"{path} - Clip2Anim")
+        self.player.setSource(QUrl.fromLocalFile(path))
+        self.player.play()
+        self.btn_play.setIcon(qta.icon("mdi6.pause"))
+        self.btn_play.setToolTip("一時停止")
+        self.setFocus()
+
+    def open_file(self):
+        """ダイアログから動画ファイルを選択して読み込む。"""
+        path, _ = QFileDialog.getOpenFileName(self, "動画を開く", "", "Video Files (*.mp4 *.mkv *.webm *.mov *.avi)")
+        if path:
+            self._load_video(path)
+
+    # --- 鍵盤イベント・その他 ---
 
     def keyPressEvent(self, event):
         """キーボードショートカットの制御"""
@@ -475,15 +557,6 @@ class MainWindow(QMainWindow):
             self.toggle_play()
             return True
         return super().eventFilter(obj, event)
-
-    def open_file(self):
-        """動画ファイルを選択して読み込む。"""
-        path, _ = QFileDialog.getOpenFileName(self, "動画を開く", "", "Video Files (*.mp4 *.mkv *.webm *.mov *.avi)")
-        if not path: return
-        self.video_path = path
-        self.setWindowTitle(f"{path} - Clip2Anim")
-        self.player.setSource(QUrl.fromLocalFile(path))
-        self.setFocus() 
 
     def toggle_play(self):
         """動画の再生・一時停止を切り替える。"""
@@ -533,7 +606,6 @@ class MainWindow(QMainWindow):
         
         self.end_ms = duration
         self.lbl_end.setText(f"終了: {ms_to_text(duration)}")
-        
         
         # 初回読み込み時などに位置をリセット
         if self.slider._position == 0:
@@ -664,12 +736,7 @@ class MainWindow(QMainWindow):
 
                 # 一般的なモニターなら画面下部の約3%を除去する。
                 # 2160pを2110pに。1080pを1055pに。解像度に柔軟に対応する
-
-                # 解像度の横幅が縦幅の2倍以上の場合、スマホとして判断し画面下部の約4%を除去する。
-                # 1080pなら1038pに。
-                # 4%で全てに対応できているか不明。スマホ判定も正しいか不明。
-                # 横幅iw/高さih >= 2.0
-                vf.append("crop=iw:if(gte(iw/ih\,2.0)\,ih*0.961111111111\,ih*0.976851851852):0:0")
+                vf.append("crop=iw:ih*0.976851851852:0:0")
             # 500:-1
             vf.append(f"scale={self.size_spin.value()}:-1")
         if force_format:
@@ -695,7 +762,7 @@ class MainWindow(QMainWindow):
         vf.insert(0, f"[0:v] fps={self.fps_spin.value()}")
         vf.append("split [a][b];[a] palettegen=stats_mode=single [p];[b][p] paletteuse=new=1")
         out_file = src.with_name(f"{src.stem}_gif_{self.size_spin.value()}.gif")
-        cmd = args + ["-filter_complex", ",".join(vf), "-c:v", "gif", "-f", "gif", str(out_file)]
+        cmd = args + ["-vf", ",".join(vf), "-c:v", "gif", "-f", "gif", str(out_file)]
         self.run_export_process(cmd, out_file)
 
     def start_export_avif(self):
@@ -708,7 +775,6 @@ class MainWindow(QMainWindow):
 
         # --- コーデックを動的に指定 ---
         av1_codec = self.config.get("av1_codec", "libaom-av1")
-        print(av1_codec)
 
         cmd = args + [
             "-vf", ",".join(vf),
@@ -724,11 +790,6 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     w = MainWindow()
     if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):
-        w.video_path = sys.argv[1]
-        w.setWindowTitle(f"{sys.argv[1]} - Clip2Anim")
-        w.player.setSource(QUrl.fromLocalFile(sys.argv[1]))
-        w.player.play()
-        w.btn_play.setIcon(qta.icon("mdi6.pause"))
-        w.btn_play.setToolTip("一時停止")
+        w._load_video(sys.argv[1]);
     w.show()
     sys.exit(app.exec())

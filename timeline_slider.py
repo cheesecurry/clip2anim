@@ -83,7 +83,9 @@ class TimelineSlider(QWidget):
     def _ms_to_x(self, ms):
         """ミリ秒 -> X座標"""
         w = self.width() - self._margin * 2
-        if w <= 0: return self._margin
+        # durationが0またはwidthが0の場合は、マージン位置を返すようにガード
+        if w <= 0 or self._duration <= 0: 
+            return self._margin
         return self._margin + (ms / self._duration) * w
 
     def _x_to_ms(self, x):

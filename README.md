@@ -16,8 +16,7 @@
 インストーラーを用いてセットアップする方法と、zipを展開して配置する方法があります。
 
 ### インストーラー版を使用する場合
-**Clip2AnimSetup.exe**を実行し、画面通りに進めると**clip2anim.exe**は`%localappdata%\Clip2Anim`の配下にインストールされます。  
-**ffmpeg**も`%localappdata%\Clip2Anim\ffmpeg`にインストールされ、動画ファイルの右クリックメニューに「clip2animで開く」を追加されます。  
+**Clip2AnimSetup.exe**を実行し、画面通りに進めるとデフォルトでは`%localappdata%\Clip2Anim`にインストールされ、動画ファイルの右クリックメニューに「clip2animで開く」を追加されます。
 AVIFエンコーダーはなるべくハードウェアアクセラレーションが有効になるよう`av1_nvenc` or `av1_qsv` or `av1_amf`が使用されるよう設定されます。使用できない場合は`libaom-av1`が採用されます。
 
 ### ポータブル版を使用する場合

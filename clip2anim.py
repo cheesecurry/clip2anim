@@ -551,13 +551,6 @@ class MainWindow(QMainWindow):
         # 親クラスのイベント処理を呼び出す
         super().keyPressEvent(event)
 
-    def eventFilter(self, obj, event):
-        """映像表示エリア（VideoWidget）へのクリックイベントを検知"""
-        if obj == self.video and event.type() == QEvent.Type.MouseButtonPress:
-            self.toggle_play()
-            return True
-        return super().eventFilter(obj, event)
-
     def toggle_play(self):
         """動画の再生・一時停止を切り替える。"""
         if self.player.playbackState() == QMediaPlayer.PlayingState:

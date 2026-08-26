@@ -750,7 +750,7 @@ class MainWindow(QMainWindow):
         out_file = src.with_name(f"{src.stem}_webp_{self.size_spin.value()}.webp")
         cmd = args + ["-vf", ",".join(vf), "-c:v", "libwebp", "-lossless", "1", 
                        "-quality", str(self.quality_spin.value()), "-loop", "0", 
-                       "-preset", "picture", "-an", "-vsync", "0", "-compression_level", "6", str(out_file)]
+                       "-preset", "picture", "-an", "-fps_mode", "passthrough", "-compression_level", "6", str(out_file)]
         self.run_export_process(cmd, out_file)
 
     def start_export_gif(self):

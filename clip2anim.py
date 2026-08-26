@@ -29,7 +29,6 @@ else:
 # FFmpegのパス
 FFMPEG = APP_DIR / "ffmpeg" / "ffmpeg.exe"
 
-
 def ms_to_text(ms: int) -> str:
     """ミリ秒を hh:mm:ss.zzz 形式の文字列へ変換する。"""
     t = QTime(0, 0).addMSecs(max(0, ms))
@@ -803,9 +802,10 @@ if __name__ == "__main__":
     # --- ログ設定の適用 ---
     # 文字列からloggingの定数（logging.DEBUGなど）に変換
     numeric_level = getattr(logging, args.log_level.upper(), logging.INFO)
-    
+
+    log_path = APP_DIR / "Clip2Anim.log"
     logging.basicConfig(
-        filename="Clip2Anim.log",
+        filename=log_path,
         filemode='w',
         level=numeric_level,
         format='%(asctime)s - %(levelname)s - %(message)s',

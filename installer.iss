@@ -26,6 +26,10 @@ Root: HKCU; Subkey: "Software\Classes\*\shell\Clip2Anim"; \
 
 Root: HKCU; Subkey: "Software\Classes\*\shell\Clip2Anim"; \
     ValueName: "Icon"; ValueType: string; ValueData: "{app}\clip2anim.exe"
+    
+Root: HKCU; Subkey: "Software\Classes\*\shell\Clip2Anim"; \
+    ValueName: "AppliesTo"; ValueType: string; \
+    ValueData: "System.Kind:=video"
 
 Root: HKCU; Subkey: "Software\Classes\*\shell\Clip2Anim\command"; \
     ValueType: string; \
